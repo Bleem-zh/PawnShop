@@ -1,0 +1,85 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+  PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.pawnshop.dao.CarDao">
+	
+	<!-- 查询汽车未提交的列表数据 -->
+	<select id="getCarContractList" parameterType="String" resultType="Map">
+		SELECT * FROM tb_car 
+		ORDER BY updateTime desc
+  		LIMIT #{page},#{limit}
+	</select>
+	
+	<!-- 统计汽车未提交的列表总数 -->
+	
+	<!-- 获取汽车列表界面表单数据  -->
+	<select id="getCarList" parameterType="Map" resultType="TbCar">
+		SELECT * FROM tb_car WHERE 1 = 1 
+		<if test="car.drivingLicense != null and car.drivingLicense !='' ">
+			AND drivingLicense = #{car.drivingLicense} 
+		</if>
+		<if test="car.engineNo != null and car.engineNo !='' ">
+			AND engineNo = #{car.engineNo} 
+		</if>
+		<if test="car.carId != null and car.carId !='' ">
+			AND carId = #{car.carId} 
+		</if>
+		ORDER BY updateTime DESC
+		<if test="page != null and page !='' ">
+			LIMIT #{page},#{limit}
+		</if>
+	</select>
+	
+	<!-- 统计汽车表的数量 -->
+	<select id="countTbCar" resultType="Int">
+		SELECT COUNT(*) FROM tb_car
+	</select>
+	
+	<insert id="insertCar" parameterType="TbCar">
+		INSERT INTO tb_car(carId,brand,model,dateOfManufacture,
+						   color,drivingLicense,engineNo,nakedPrice,
+						   evaluationPrice,updater,updateTime) 
+		VALUES(#{carId},#{brand},#{model},#{dateOfManufacture},#{color},
+			   #{drivingLicense},#{engineNo},#{nakedPrice},#{evaluationPrice},
+			   #{updater},#{updateTime})
+	</insert>
+	
+	<!-- 修改汽车信息 -->
+	<update id="updateCar" parameterType="TbCar">
+	  update tb_car 
+	   <trim prefix="set" prefixOverrides="," suffixOverrides=",">
+	          <if test="color != null and color != ''">
+	              color = #{color}
+	          </if>
+	          <if test="nakedPrice != null and nakedPrice != ''">
+	              ,nakedPrice = #{nakedPrice}
+	          </if>
+	          <if test="drivingLicense != null and drivingLicense != ''">
+	              ,drivingLicense = #{drivingLicense}
+	          </if>
+	          <if test="evaluationPrice != null and evaluationPrice != ''">
+	              ,evaluationPrice = #{evaluationPrice}
+	          </if>
+	          <if test="updater != null and updater != ''">
+	              ,updater = #{updater}
+	          </if>
+	          <if test="updateTime != null">
+	              ,updateTime = #{updateTime}
+	          </if>
+	      </trim>
+	     <where>
+	          carId = #{carId}
+	     </where>
+	</update>
+	
+	<!-- 查询是否有在途的汽车 -->
+	<select id="findTbCarApply" parameterType="String" resultType="int">
+		SELECT COUNT(*) FROM tb_contract_between tcb
+		LEFT JOIN tb_contract tc ON tcb.`contractId` = tc.`contractId`
+		WHERE tc.`status` IN ('待审核','审核不通过')
+		AND tcb.`productId` = #{carId}
+	</select>
+	
+	
+</mapper>

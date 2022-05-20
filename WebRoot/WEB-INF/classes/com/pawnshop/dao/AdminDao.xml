@@ -1,0 +1,153 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+  PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.pawnshop.dao.AdminDao">
+		
+	<select id="countUser" resultType="Int">
+		select count(*) from user
+	</select>
+	
+	<!--  查询待审核的房产列表 明细-->
+	<select id="findReviewJList" resultType="Map">
+	     SELECT  tc.*,
+	     		 GROUP_CONCAT(tl.`name`) loanerName
+		 FROM tb_contract tc
+		 LEFT JOIN tb_loaner_between tlb
+			ON tc.`contractId` = tlb.`contractId`
+		 LEFT JOIN tb_loaner tl
+			ON tl.`loanerId` = tlb.`loanerId`
+		 WHERE tc.status IN('待审核','审核不通过')
+		 <if test="uId != null and uId !='' ">
+		 	AND tc.uId =  #{uId}
+		 </if>
+		
+		 <if test="balance != null and balance !=''">
+		 	AND tc.contractNum LIKE CONCAT(CONCAT('%',#{balance}),'%')
+  		 </if> 
+		 GROUP BY tc.`contractId`
+		 ORDER BY tc.`updateTime` DESC
+	     LIMIT #{page},#{limit}	
+	</select>
+	
+	
+	<!-- 查询用户列表 -->
+	<select id="findUList" resultType="user">
+		select * from user limit #{page},#{limit}
+	</select>
+	
+	<!-- 根据id查用户信息 -->
+	<select id="findUInfo" resultType="user">
+		select * from user where uId = #{uid}
+	</select>
+	
+	<!-- 修改用户信息 -->
+	<update id="updateUser" parameterType="user">
+		update user set
+		username=#{user.username},password=#{user.password},uCard=#{user.ucard},tel=#{user.tel},uemail=#{user.uemail},uaddress=#{user.uaddress}
+		where uId=#{user.uid}
+	</update>
+	
+	<!--  查询未提交的房贷列表 -->
+	<select id="findAProList" resultType="Contract" parameterType="String">
+		select * 
+		from tb_contract 
+		where status='未提交' 
+		<if test=" uId != null and uId != '' ">
+			and uId = #{uId}
+		</if>
+		<if test=" productType != null and productType != '' ">
+			and productType = #{productType}
+		</if>
+		
+		<if test="balance != null and balance !=''">
+  			and contractId LIKE CONCAT(CONCAT('%',#{balance}),'%')
+  		</if>
+		
+		order by contractId desc 
+		limit #{page},#{limit}
+	</select>
+	
+	<!-- 统计待审核列表数量 -->
+ 	<select id="countPropertyReview" resultType="Int" parameterType="String">
+		SELECT COUNT(*) FROM tb_contract 
+		WHERE STATUS in('待审核','审核不通过') 
+		<if test="uId != null and uId !=''">
+			AND uId = #{uId}
+		</if>
+	</select> 
+	
+	<!-- 通过合同id获取提交之后的房产界面信息 -->
+	<select id="getPropertyPage" resultType="Map" parameterType="String">
+		SELECT tpc.*,
+			   trr.`rComments`,
+			   trr.`rStatus` 
+		  FROM tb_contract tpc
+	 LEFT JOIN tb_review_between trb 
+	 		ON tpc.`contractId` = trb.`contractId`
+	 LEFT JOIN tb_review_record trr 
+	 		ON trb.`rId` = trr.`rId`
+		 WHERE tpc.`contractId` = #{contractId}
+	</select>
+	
+		<!--  获取贷后管理界面列表信息   -->
+	<select id="gePostLoanList" resultType="Map" parameterType="String">
+		select  tc.*,
+	     		GROUP_CONCAT(tl.`name`) loanerName
+		from tb_contract tc
+		LEFT JOIN tb_loaner_approve tl
+			ON tl.`contractId` = tc.`contractId`
+		where status in('待放款','待还款','已逾期','M1','M2','M3','M3+') 
+		<if test=" uId != null and uId != '' ">
+			and uId = #{uId}
+		</if>
+		
+		<if test="contractId != null and contractId !=''">
+  			and tc.contractNum LIKE CONCAT(CONCAT('%',#{contractId}),'%')
+  		</if>
+		GROUP BY tc.`contractId`
+		order by tc.updateTime desc 
+		limit #{page},#{limit}
+	</select>
+	
+		<!--  统计贷后管理界面列表信息总数   -->
+	<select id="countPostLoanList" resultType="int" parameterType="String">
+		select count(1) 
+		from tb_contract 
+		where status in('待放款','待还款','已逾期') 
+		<if test=" uId != null and uId != '' ">
+			and uId = #{uId}
+		</if>
+	</select>
+	
+		<!--  统计历史借款界面列表信息总数   -->
+	<select id="countHistoryPostLoanList" resultType="int" parameterType="String">
+		select count(1) 
+		from tb_contract 
+		where status in('不良资产','已赎回') 
+		<if test=" uId != null and uId != '' ">
+			and uId = #{uId}
+		</if>
+	</select>
+	
+		<!--  获取历史借款界面列表信息   -->
+	<select id="geHistoryPostLoanList" resultType="Map" parameterType="String">
+		select  tc.*,
+	     		GROUP_CONCAT(tl.`name`) loanerName
+		from tb_contract tc
+		LEFT JOIN tb_loaner_approve tl
+			ON tl.`contractId` = tc.`contractId`
+		where status in('不良资产','已赎回') 
+		<if test=" uId != null and uId != '' ">
+			and uId = #{uId}
+		</if>
+		
+		<if test="contractId != null and contractId !=''">
+  			and tc.contractNum LIKE CONCAT(CONCAT('%',#{contractId}),'%')
+  		</if>
+		GROUP BY tc.`contractId`
+		order by contractId desc 
+		limit #{page},#{limit}
+	</select>
+	
+</mapper>

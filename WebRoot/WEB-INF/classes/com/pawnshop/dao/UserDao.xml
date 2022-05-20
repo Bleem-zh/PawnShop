@@ -1,0 +1,203 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+  PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.pawnshop.dao.UserDao">
+	<!-- 查询用户 -->
+	<select id="findUser" parameterType="String" resultType="user">
+		select * from user
+		where username=#{username}
+		and password=#{password}
+	</select>
+	
+	<!--  根据用户名查用户 -->
+	<select id="findUserByName" parameterType="String" resultType="user">
+		select * from user
+		where username = #{username}
+	</select>
+	
+	<!--  查询用户典当物列表 -->
+	<select id="findPawnList" resultType="jewellery">
+		select * from Jewellery
+	</select>
+	
+	<!-- 修改用户资料 -->
+	<update id="updateInfo" parameterType="user">
+		update user set
+		username=#{user.username},password=#{user.password},tel=#{user.tel},uemail=#{user.uemail},uaddress=#{user.uaddress}
+		where uId=#{user.uid}
+	</update>
+	
+	
+	<!-- 查询所有图片 -->
+    <select id="list" resultType="user">
+    	select uid, uimage from user
+    </select>
+    	
+    <insert id="save" parameterType="user">
+    	insert into user(uimage) values(#{uimage})
+    </insert>
+    
+    <!-- 房贷表信息整体修改信息 -->
+    <update id="updatePropertyCon" parameterType="Contract">
+    	update tb_contract 
+	   	<trim prefix="set" prefixOverrides="," suffixOverrides=",">
+            <if test="balance != null and balance != ''">
+                balance = #{balance},
+            </if>
+            <if test="interest != null and interest != ''">
+                interest = #{interest},
+            </if>
+            <if test="term != null and term != ''">
+                term = #{term},
+            </if>
+            <if test="percentage != null and percentage != ''">
+                percentage = #{percentage},
+            </if>
+            <if test="repaymentSource != null and repaymentSource != ''">
+                repaymentSource = #{repaymentSource},
+            </if>
+            <if test="comments != null and comments != ''">
+                comments = #{comments},
+            </if>
+            <if test="status != null and status != ''">
+                status = #{status},
+            </if>
+            <if test="uId != null and uId != ''">
+                uId = #{uId},
+            </if>
+            <if test="repayMethod != null and repayMethod != ''">
+                repayMethod = #{repayMethod},
+            </if>
+            <if test="grossRepayment != null and grossRepayment != ''">
+                grossRepayment = #{grossRepayment},
+            </if>
+            <if test="grossInterest != null and grossInterest != ''">
+                grossInterest = #{grossInterest},
+            </if>
+            <if test="contractNum != null and contractNum != ''">
+                contractNum = #{contractNum},
+            </if>
+            <if test="beginDay != null">
+                beginDay = #{beginDay},
+            </if>
+            <if test="endDateInput != null">
+                endDateInput = #{endDateInput},
+            </if>
+            <if test="updateTime != null">
+                updateTime = #{updateTime},
+            </if>
+ 		</trim>
+	      <where>
+	           contractId = #{contractId}
+	      </where>
+    </update>
+    
+    <!-- 房贷表信息局部修改信息 -->
+    <update id="updateProConPart" parameterType="Contract">
+	   update 
+	   	tb_contract 
+	    <trim prefix="set" prefixOverrides="," suffixOverrides=",">
+            <if test="status != null and status != ''">
+                status = #{status}
+            </if>
+            <if test="updateTime != null">
+                ,updateTime = #{updateTime}
+            </if>
+        </trim>
+	      <where>
+	           contractId = #{contractId}
+	      </where>
+    </update>
+    
+    
+    <!-- 用合同id获取审核中间表的id -->
+    <select id="getReviRecordId" parameterType="String" resultType="TbReviewBetween">
+    	SELECT * FROM tb_review_between WHERE contractId = #{contractId}
+    </select>
+    
+    <!-- 新增审核记录表 -->
+    <insert id="insertReviewRecord" parameterType="TbReviewRecord" >
+    	insert into tb_review_record(rId,rComments,rStatus,uId,contractId,updateTime) 
+    	value (#{rId},#{rComments},#{rStatus},#{uId},#{contractId},#{updateTime}) 
+    </insert>
+    
+    
+    <!-- 新增审核中间表 -->
+    <insert id="savetReviewBet" parameterType="TbReviewBetween"	 useGeneratedKeys="true" keyProperty="rbId" >
+    	<if test="rbId != null and rbId != '' ">
+			update tb_review_between set contractId=#{contractId},rId=#{rId},updateTime=#{updateTime} 
+			where rbId = #{rbId}
+		</if>
+		<if test="rbId == null or rbId == '' ">
+			insert into tb_review_between(rbId,contractId,rId,updateTime) 
+		    	value (#{rbId},#{contractId},#{rId},#{updateTime}) 
+		    	ON DUPLICATE KEY UPDATE rbId = rbId+1	
+		</if>
+    </insert>
+    
+    <!-- 新增贷后管理记录表 -->
+    <insert id="insertPostLoanRecord" parameterType="TbPostLoanRecord" useGeneratedKeys="true" keyProperty="plrId" >
+    	insert into tb_postLoan_record(beforeStatus,contractId,updateReason,updateTime,
+    									plComments,plStatus,uId) 
+    	value (#{beforeStatus},#{contractId},#{updateReason},#{updateTime},
+    								#{plComments},#{plStatus},#{uId}) 
+    	ON DUPLICATE KEY UPDATE plrId = plrId+1
+    </insert>
+    
+    <!-- 用合同id获取贷后中间表的id -->
+    <select id="getPostLoanId" parameterType="String" resultType="String">
+		SELECT plbId FROM tb_postLoan_between WHERE contractId = #{contractId}  
+	</select>
+    
+    <!-- 新增贷后管理记录表 -->	
+    <insert id="savePostLoanBetween" parameterType="TbPostLoanBetween" useGeneratedKeys="true" keyProperty="plbId" >
+		<if test="plbId != null and plbId != '' ">
+			update tb_postLoan_between set contractId=#{contractId},plrId=#{plrId},updateTime=#{updateTime}
+			 where plbId=#{plbId}
+		</if>
+		<if test="plbId == null or plbId == '' ">
+			insert into tb_postLoan_between(plrId,contractId,updateTime ) 
+		    	value (#{plrId},#{contractId},#{updateTime} ) 
+		    	ON DUPLICATE KEY UPDATE plbId = plbId+1		
+		</if>
+    </insert>
+    
+    <!-- 房产表的备份 -->
+    <insert id="insertBackupProperty" parameterType="Map">
+		insert into tb_property_approve
+		<foreach collection="paramMap.keys" item="key" open="(" close=")" separator="," >  
+            ${key}  
+         </foreach>  
+         values   
+         <foreach collection="paramMap.keys"  item="key" open="(" close=")" separator=",">  
+            #{paramMap[${key}]}  
+         </foreach> 
+    </insert>
+    
+    <!-- 汽车表的备份 -->
+    <insert id="insertBackupCar" parameterType="Map">
+		insert into tb_car_approve
+		<foreach collection="paramMap.keys" item="key" open="(" close=")" separator="," >  
+            ${key}  
+         </foreach>  
+         values   
+         <foreach collection="paramMap.keys"  item="key" open="(" close=")" separator=",">  
+            #{paramMap[${key}]}  
+         </foreach> 
+    </insert>
+    
+    <!-- 借款人表的备份 -->
+    <insert id="insertBackupLoaner" parameterType="Map">
+		insert into tb_loaner_approve
+		<foreach collection="paramMap.keys" item="key" open="(" close=")" separator="," >  
+            ${key}  
+         </foreach>  
+         values   
+         <foreach collection="paramMap.keys"  item="key" open="(" close=")" separator=",">  
+            #{paramMap[${key}]}  
+         </foreach> 
+											
+    </insert>
+    
+</mapper>

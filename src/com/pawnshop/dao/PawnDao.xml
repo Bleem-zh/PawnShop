@@ -1,0 +1,262 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+  PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.pawnshop.dao.PawnDao">
+
+  <select id="findReviewList" resultType="Jewellery"> 
+  	select * from jewellery where jState = "待续当审核"
+  </select>
+  
+  <!-- 新增合同 -->
+  <insert id="insertContract" parameterType="Contract">
+  	insert into tb_contract (contractId,status,uId,updateTime,productType) 
+  	values (#{contractId},'未提交',#{uId},#{updateTime},#{productType})
+  </insert>
+  
+  <!-- 新增房贷合同 -->
+  <!-- <insert id="insertProContract" parameterType="java.lang.String">
+  	insert into tb_contract (contractId,balance,iterest,term,percentage,repaymentSource,comments,updateTime) 
+  	values (#{contractId,jdbcType=VARCHAR},null,null,null,null,null,null,null)
+  </insert> -->
+  
+    <!--                       获取借款人相关                                  -->
+  
+  <!-- 查询指定字段的loaner -->
+  <select id="findLoanerList" resultType="Loaner"> 
+  	select * from tb_loaner
+  	where 1=1
+  	<if test="arg0.citizenID != null and arg0.citizenID !=''">
+  		and citizenID = #{arg0.citizenID}
+  	</if>
+  	<if test="arg0.loanerId != null and arg0.loanerId !=''">
+  		and loanerId = #{arg0.loanerId}
+  	</if>
+  	ORDER BY updateTime desc
+  	limit #{arg1},#{arg2}	 
+  </select>
+  
+  <select id="countLoaners" resultType="Integer" > 
+  	select count(*) from tb_loaner
+  </select>
+  
+  <!-- 通过合同Id获取借款人-->
+  <select id="findLoanerByCId" parameterType="LoanerBetween" resultType="java.util.Map"> 
+	  	SELECT ll.*,lb.`loanerBetweenId`,lb.`loanerType` 
+	  	  FROM tb_loaner_between lb 
+	 LEFT JOIN tb_loaner ll 
+	 	    ON lb.`loanerId` = ll.`loanerId`
+		 WHERE lb.`contractId` = #{contractId}
+		   AND lb.`loanerType` = #{loanerType}
+  </select>
+  
+  <!-- 根据合同id获取审核通过后的借款人列表-->
+  <select id="getApproveLoaner" parameterType="LoanerBetween" resultType="java.util.Map"> 
+	  	SELECT ll.*,lb.`loanerBetweenId`,lb.`loanerType` 
+	  	  FROM tb_loaner_between lb 
+	 LEFT JOIN tb_loaner_approve ll 
+	 	    ON lb.`loanerId` = ll.`loanerId` and lb.contractId = ll.contractId
+		 WHERE lb.`contractId` = #{contractId}
+		   AND lb.`loanerType` = #{loanerType}
+  </select>
+  
+  <!-- 根据合同id获取借款人信息-->
+  <select id="getApplyLoaner" parameterType="String" resultType="java.util.Map"> 
+	  	SELECT ll.* 
+	  	  FROM tb_loaner_between lb 
+	 LEFT JOIN tb_loaner ll 
+	 	    ON lb.`loanerId` = ll.`loanerId`
+		 WHERE lb.`contractId` = #{contractId}
+  </select>
+  
+ <!-- 新增借款人 -->
+  <insert id="insertLoaner" parameterType="Loaner">
+  	insert into tb_loaner(loanerId,name,gender,age,register,marriage,
+  							credit,citizenID,updateTime,telphoneNum) 
+  		 values (#{loanerId},#{name},#{gender},#{age},#{register},#{marriage},
+  		 		#{credit},#{citizenID},#{updateTime},#{telphoneNum})
+  </insert>
+  
+    <!-- 修改借款人信息 -->
+  <update id="updateLoanerInfo" parameterType="Loaner">
+	   update 
+	   	tb_loaner 
+	    <trim prefix="set" prefixOverrides="," suffixOverrides=",">
+	           <if test="name != null and name != ''">
+	               name = #{name}
+	           </if>
+	           <if test="gender != null and gender != ''">
+	               ,gender = #{gender}
+	           </if>
+	           <if test="age != null and age != ''">
+	               ,age = #{age}
+	           </if>
+	           <if test="register != null and register != ''">
+	               ,register = #{register}
+	           </if>
+	           <if test="marriage != null and marriage != ''">
+	               ,marriage = #{marriage}
+	           </if>
+	           <if test="credit != null and credit != ''">
+	               ,credit = #{credit}
+	           </if>
+	           <if test="telphoneNum != null and telphoneNum != ''">
+	               ,telphoneNum = #{telphoneNum}
+	           </if>
+	           <if test="updateTime != null">
+	               ,updateTime = #{updateTime}
+	           </if>
+	       </trim>
+	      <where>
+	           loanerId = #{loanerId}
+	      </where>
+   </update>
+  
+  
+  
+  
+  <!--                            统计总数相关	               -->
+   <select id="findAProCount" resultType="Integer"> 
+  	select count(*) 
+  	from tb_contract 
+  	where status = '未提交'
+  	<if test="uId != null and uId != '' ">
+  		and uId = #{uId}
+  	</if>
+  	<if test="productType != null and productType != '' ">
+  		and productType = #{productType}
+  	</if>
+   </select>
+   
+   
+   
+<!--               tb_loaner_between 借款人中间表相关	               -->
+   
+   <!-- 新增借款人中间表 -->
+  <insert id="insertLoanBetween" parameterType="LoanerBetween">
+  	insert into tb_loaner_between(loanerBetweenId,contractId,loanerId,loanerType) 
+  		 values (#{loanerBetweenId},#{contractId},#{loanerId},#{loanerType})
+  </insert>
+  
+  <!--查找对应的借款人-->
+   <select id="findContratLoaner" parameterType="String" resultType="java.util.Map"> 
+  	SELECT le.*,
+  		   lb.loanerBetweenId,
+  		   lb.contractId,
+  		   lb.loanerType
+	 FROM tb_loaner_between lb
+LEFT JOIN tb_loaner le 
+	   ON le.loanerId = lb.loanerId
+	WHERE lb.contractId = #{contractId}
+	  AND lb.loanerType = #{loanerType}
+   </select>
+  
+	<delete id="delLoanerBetween" parameterType="String">
+		delete from tb_loaner_between where loanerBetweenId = #{loanerBetweenId}
+	</delete>
+  
+<!--               tb_property 房产信息表相关	               -->
+  
+  <!-- 新增房产信息 -->
+  <insert id="insertProperty" parameterType="TbProperty">
+  	insert into tb_property(propertyId,communityName,communityAddress,functional,
+  							   area,proType,decoration,status,
+  							   years,obligee,obligeeRelation,olderChildren,
+						  	   registe,source,procount,univalent,
+						  	   mortgage,percentage,updateTime	) 
+  		 			 values (#{propertyId},#{communityName},#{communityAddress},#{functional},
+						  	 #{area},#{proType},#{decoration},#{status},
+						  	 #{years},#{obligee},#{obligeeRelation},#{olderChildren},	
+						  	 #{registe},#{source},#{procount},#{univalent},	
+						  	 #{mortgage},#{percentage},#{updateTime}	)
+  </insert>
+  
+  <!-- 通过合同id和抵押类型获取房产信息 getProductByConId -->
+  <select id="getProductByConId" parameterType="Map" resultType="java.util.Map"> 
+		SELECT tp.*,tpb.`proBetId` 
+		  FROM tb_contract_between tpb
+	 LEFT JOIN ${backupTb} tp 
+	        ON tpb.`productId` = tp.`${primaryKeyName}`
+		 WHERE tpb.`contractId` = #{contractId}
+		   AND tpb.`mortgageType` = #{mortgageType}
+  </select>
+  
+  <!-- 通过合同id获取产品信息  -->
+  <select id="getApplyProduct" parameterType="java.util.Map" resultType="java.util.Map"> 
+		SELECT tp.*
+		  FROM tb_contract_between tpb
+	 LEFT JOIN ${backupTb} tp 
+	        ON tpb.`productId` = tp.${primaryKeyName}
+		 WHERE tpb.`contractId` = #{contractId}
+  </select>
+  
+  <!-- 通过合同id和抵押类型获取审核通过后的产品信息  -->
+  <select id="getApproveProduct" parameterType="String" resultType="java.util.Map"> 
+		SELECT tp.*,tpb.`proBetId` 
+		  FROM tb_contract_between tpb
+	 LEFT JOIN ${backupTb} tp 
+	        ON tpb.`productId` = tp.${primaryKeyName} AND tpb.`contractId` = tp.`contractId`
+		 WHERE tpb.`contractId` = #{contractId}
+		   AND tpb.`mortgageType` = #{mortgageType}
+  </select>
+  
+  <!-- 统计房产总数 -->
+  <select id="getCountProperty" resultType="Integer">
+  		SELECT  COUNT(1) FROM tb_property
+  </select>
+  
+  <!-- 分页查询房产信息 -->
+  <select id="getPropertyList"  resultType="TbProperty" >
+  	SELECT * FROM tb_property
+  	<if test="communityName != null and communityName !=''">
+  		WHERE communityName LIKE CONCAT(CONCAT('%',#{communityName}),'%')
+  	</if>
+  	ORDER BY updateTime desc
+  	LIMIT #{page},#{limit}
+  </select>
+  
+
+<!--               tb_contract_between 房产信息中间表相关	               -->
+	<!-- 删除绑定房产记录 -->
+	<delete id="delPropertyBetween" parameterType="String">
+		DELETE FROM tb_contract_between WHERE proBetId = #{proBetId}
+	</delete>
+
+	<!-- 新增房产记录 -->
+	<insert id="inserProBetween" parameterType="TbContractBetween">
+		insert into tb_contract_between(proBetId,contractId,productId,updateTime,mortgageType)
+									values(#{proBetId},#{contractId},#{productId},#{updateTime},#{mortgageType})
+	</insert>
+	
+	
+	<select id="getReviewRecordList" parameterType="String" resultType="TbReviewRecord">
+		SELECT * FROM tb_review_record 
+		 WHERE contractId = #{contractId}
+      ORDER BY updateTime DESC		
+	</select>
+	
+	<!-- 查询贷后管理更新记录 -->
+	<select id="getPostLoanRecord" resultType="TbPostLoanRecord">
+		SELECT * FROM tb_postLoan_record WHERE contractId = #{contractId} ORDER BY updateTime DESC LIMIT #{page},#{limit}
+	</select>
+	
+	<!-- 查询贷后管理更新记录条数 -->
+	<select id="countPostLoanRecord" parameterType="String" resultType="Int">
+		SELECT count(*) FROM tb_postLoan_record WHERE contractId = #{contractId} 
+	</select>
+  
+  <!-- 查询尚未审核通过的典当物 -->
+  <select id="findLoanerPawnIng" resultType="Int"  parameterType="String">
+  		SELECT COUNT(1) FROM tb_loaner_between tlb
+		LEFT JOIN tb_contract tpc 
+			ON tlb.`contractId` = tpc.`contractId`
+		WHERE tpc.`status` IN ('未提交','待审核','审核不通过')
+		AND tlb.`loanerId` = #{loanerId}
+  </select>
+  
+  <delete id="delContract"  parameterType="String">
+  	DELETE FROM tb_contract WHERE contractId = #{contractId}
+  </delete>
+  
+  
+</mapper>

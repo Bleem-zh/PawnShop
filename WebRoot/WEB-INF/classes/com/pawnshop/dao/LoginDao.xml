@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.pawnshop.dao.LoginDao">
+    <select id="findUser" parameterType="String" resultType="user">
+	    select *
+	    from user
+	    where usernameName = #{usernameName} and
+	          password = #{password}
+     </select>
+     <insert id="regist" parameterType="User" >
+		insert into user(username,password)
+		values(#{username},#{password})
+	</insert>
+	
+	<select id="checkRepeat" parameterType="User" resultType="User">
+		select * from user where username = #{username}
+	</select>
+     
+    <!-- 新增用户登录记录 -->
+    <insert id="savetLoginRecord" parameterType="TbLoginRecord"	 useGeneratedKeys="true" keyProperty="lrId" >
+    	insert into tb_login_record(lrId,loginIp,uId,updateTime) 
+    	value (#{lrId},#{loginIp},#{uId},#{updateTime}) 
+    	ON DUPLICATE KEY UPDATE lrId = lrId+1
+    </insert> 
+    
+    <!-- 新增登录IP状态记录 -->
+    <insert id="saveLogin" parameterType="TbLogin" useGeneratedKeys="true" keyProperty="loginId" >
+    	insert into tb_login(loginIp,uId,userName,createTime)
+    	value (#{loginIp},#{uId},#{userName},#{createTime})
+    	ON DUPLICATE KEY UPDATE loginId = loginId+1
+    </insert>
+    
+    <!-- 查询本机是否已经登录有账号和登录的账号是否存在session中  -->
+    <select id="findLogin" parameterType="TbLoginRecord" resultType="TbLogin">
+    	SELECT * FROM tb_login WHERE uId = #{uId}
+	  	<if test="loginIp != null and loginIp !=''">
+	  		or loginIp = #{loginIp}
+	  	</if>
+    </select>
+    
+    <delete id="delLogin" parameterType="Int">
+    	DELETE FROM tb_login WHERE uId = #{uId};
+    </delete>
+     
+</mapper>
